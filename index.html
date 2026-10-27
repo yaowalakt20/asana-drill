@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Satit Asana Drill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
+<style>
+/* Layout: single mobile column — tabs, group chips, score strip, one drill "stage" card; review = prefix decoder grid + list by sequence. Light theme only (by request). */
+:root{
+  --bg:#FAF8F4;        /* white-sand page */
+  --surface:#FFFFFF;
+  --sand:#F1EBE1;
+  --line:#E4DCCF;
+  --ink:#2E2A24;
+  --muted:#7A7166;
+  --sage:#6C8263;
+  --sage-deep:#566B4F;
+  --sage-soft:#E7EDE2;
+  --clay:#B4623E;
+  --clay-soft:#F7E7DD;
+  --font-sa:'Marcellus', 'Cormorant Garamond', Georgia, serif;
+  --font-body:'IBM Plex Sans Thai', 'Sukhumvit Set', 'Noto Sans Thai', system-ui, sans-serif;
+  color-scheme: light;
+}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--font-body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+body{margin:0}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,.chip:focus-visible{outline:2px solid var(--sage);outline-offset:2px}
+
+.wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px;display:flex;flex-direction:column;gap:18px}
+
+header{display:flex;flex-direction:column;gap:12px}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--font-sa);font-weight:400;font-size:30px;line-height:1.1;margin:2px 0 0;letter-spacing:.01em}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);background:var(--sand);border-radius:12px;padding:4px;gap:4px}
+.tab{border:0;background:transparent;border-radius:9px;padding:9px 0;font-weight:500;color:var(--muted)}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(60,50,35,.08)}
+
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 13px;font-size:14px;white-space:nowrap;color:var(--ink)}
+.chip small{color:var(--muted);font-size:12px;margin-left:4px;font-variant-numeric:tabular-nums}
+.chip[aria-pressed="true"]{background:var(--sage);border-color:var(--sage);color:#fff}
+.chip[aria-pressed="true"] small{color:rgba(255,255,255,.8)}
+.chip.miss{border-color:#E8CDBE;color:var(--clay)}
+.chip.miss[aria-pressed="true"]{background:var(--clay);border-color:var(--clay);color:#fff}
+
+.score{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.score div{padding:10px 12px;display:flex;flex-direction:column;gap:0}
+.score div+div{border-left:1px solid var(--line)}
+.score b{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2}
+.score span{font-size:12px;color:var(--muted)}
+.score .ok b{color:var(--sage-deep)}
+.score .bad b{color:var(--clay)}
+
+.stage{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:24px 20px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;min-height:420px;justify-content:center}
+.meta{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.sa{font-family:var(--font-sa);font-weight:400;font-size:clamp(28px,8vw,38px);line-height:1.15;margin:0;text-wrap:balance;overflow-wrap:anywhere}
+.ring{position:relative;width:150px;height:150px;border:0;background:none;padding:0;border-radius:50%}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .track{fill:none;stroke:var(--sand);stroke-width:7}
+.ring .prog{fill:none;stroke:var(--sage);stroke-width:7;stroke-linecap:round;transition:stroke .35s ease}
+.stage.warm .ring .prog{stroke:var(--clay)}
+.count{position:absolute;inset:0;display:grid;place-items:center;font-size:46px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--ink);transition:color .35s}
+.stage.warm .count{color:var(--clay)}
+.count.word{font-size:18px;color:var(--muted)}
+.hint{font-size:13px;color:var(--muted)}
+
+.answer{width:100%;display:flex;flex-direction:column;gap:12px;text-align:left;border-top:1px solid var(--line);padding-top:16px}
+.answer .names{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+.answer .en{font-weight:600;font-size:17px}
+.answer .th{color:var(--muted)}
+.cue{background:var(--sage-soft);border-radius:12px;padding:10px 12px;font-size:15px}
+.cue::before{content:"คิว · ";color:var(--sage-deep);font-weight:600}
+.roots{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:14px}
+.root{border:1px solid var(--line);border-radius:8px;padding:3px 8px;background:var(--bg)}
+.root i{font-style:normal;font-family:var(--font-sa);font-size:15px;margin-right:5px}
+.root span{color:var(--muted)}
+.plus{color:var(--muted);font-size:12px}
+
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
+.btn{border-radius:14px;padding:14px 10px;font-weight:600;font-size:16px;border:1px solid transparent}
+.btn.ok{background:var(--sage);color:#fff}
+.btn.ok:hover{background:var(--sage-deep)}
+.btn.no{background:var(--clay-soft);color:var(--clay);border-color:#EBCDBC}
+.btn.primary{background:var(--ink);color:#fff;padding:14px 28px}
+.btn.ghost{background:transparent;border-color:var(--line);color:var(--ink)}
+.idle h2,.done h2{font-family:var(--font-sa);font-weight:400;font-size:26px;margin:0}
+.idle p,.done p{margin:0;color:var(--muted);max-width:34ch}
+.idle,.done{display:flex;flex-direction:column;align-items:center;gap:14px}
+.stack{display:flex;flex-direction:column;gap:10px;width:100%;max-width:280px}
+
+.tools{display:flex;flex-wrap:wrap;gap:8px 16px;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted)}
+.toggle{display:inline-flex;align-items:center;gap:8px;border:0;background:none;padding:4px 0;color:var(--muted)}
+.toggle .sw{width:34px;height:20px;border-radius:999px;background:var(--line);position:relative;transition:background .2s}
+.toggle .sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s}
+.toggle[aria-pressed="true"] .sw{background:var(--sage)}
+.toggle[aria-pressed="true"] .sw::after{transform:translateX(14px)}
+.linkbtn{border:0;background:none;color:var(--clay);padding:4px 0;font-size:13px;text-decoration:underline;text-underline-offset:3px}
+.keys{font-size:12px;color:var(--muted);text-align:center}
+kbd{font-family:inherit;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;background:var(--surface)}
+
+/* review */
+h3{font-family:var(--font-sa);font-weight:400;font-size:22px;margin:0}
+.sec-head{display:flex;flex-direction:column;gap:2px}
+.sec-head p{margin:0;color:var(--muted);font-size:14px}
+.decoder{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.dec{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.dec .p{font-family:var(--font-sa);font-size:19px;line-height:1.2}
+.dec .m{font-weight:500;font-size:15px}
+.dec .e{font-size:12px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.dec .x{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4;overflow-wrap:anywhere}
+
+.group{display:flex;flex-direction:column;gap:0;background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.ghead{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;background:var(--sand)}
+.ghead h4{margin:0;font-family:var(--font-sa);font-weight:400;font-size:19px;line-height:1.2}
+.ghead span{display:block;font-size:13px;color:var(--muted);font-family:var(--font-body)}
+.ghead button{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:13px}
+.row{padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.row+.row{border-top:1px solid var(--line)}
+.row .top{display:flex;gap:10px;align-items:baseline;justify-content:space-between}
+.row .n{font-family:var(--font-sa);font-size:19px;line-height:1.2;overflow-wrap:anywhere}
+.row .num{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;flex:none}
+.row .sub{font-size:14px;color:var(--muted)}
+.row .sub b{color:var(--ink);font-weight:500}
+.row .c{font-size:14px}
+.tag-miss{display:inline-block;font-size:11px;color:var(--clay);background:var(--clay-soft);border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:2px;font-family:var(--font-body)}
+.review{display:flex;flex-direction:column;gap:22px}
+footer{font-size:12px;color:var(--muted);text-align:center}
+
+/* sequence tab */
+.seqview{display:flex;flex-direction:column;gap:14px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.seg button{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:9px 6px;display:flex;flex-direction:column;align-items:center;gap:0;line-height:1.25}
+.seg button b{font-family:var(--font-sa);font-weight:400;font-size:17px}
+.seg button span{font-size:12px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--sage);border-color:var(--sage);color:#fff}
+.seg button[aria-pressed="true"] span{color:rgba(255,255,255,.85)}
+.hook{background:var(--sand);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.hook h3{font-size:21px}
+.hook .facts{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.hook ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px;font-size:14px}
+.seqtools{display:flex;flex-wrap:wrap;gap:8px 16px;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted)}
+.seqlist{list-style:none;margin:0;padding:0;background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.seqlist li+li{border-top:1px solid var(--line)}
+.step{display:grid;grid-template-columns:30px minmax(0,1fr);gap:4px 10px;width:100%;text-align:left;border:0;background:transparent;padding:12px 14px;cursor:default}
+.quiz .step{cursor:pointer}
+.step.core{background:#FBFAF6}
+.step .no{font-weight:600;font-size:15px;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:2px}
+.step.core .no{color:var(--sage-deep)}
+.step .body{display:flex;flex-direction:column;gap:5px;min-width:0}
+.step .nm{font-family:var(--font-sa);font-size:19px;line-height:1.2;overflow-wrap:anywhere}
+.step .nt{font-family:var(--font-body);font-size:13px;color:var(--clay);margin-left:6px}
+.step .en{font-size:13px;color:var(--muted)}
+.step .ct{font-size:14px}
+.step .ln{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.br{font-size:12px;font-weight:500;border-radius:999px;padding:2px 9px}
+.br.in{background:var(--sage-soft);color:var(--sage-deep)}
+.br.out{background:var(--sand);color:var(--ink)}
+.br.hold{background:var(--clay-soft);color:var(--clay)}
+.br.start{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.mir{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.ph{font-size:14px;color:var(--muted);border:1px dashed var(--line);border-radius:8px;padding:6px 10px}
+
+@media (min-width:520px){ .decoder{grid-template-columns:repeat(3,minmax(0,1fr))} }
+@media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">Satit Yoga · YTTC 200 Practical</div>
+      <h1>Satit Asana Drill</h1>
+    </div>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tab-drill" aria-selected="true" aria-controls="view-drill">ฝึกเรียกท่า</button>
+      <button class="tab" role="tab" id="tab-seq" aria-selected="false" aria-controls="view-seq">ลำดับ Surya</button>
+      <button class="tab" role="tab" id="tab-review" aria-selected="false" aria-controls="view-review">ทบทวน</button>
+    </div>
+  </header>
+
+  <main id="view-drill" style="display:flex;flex-direction:column;gap:14px">
+    <div class="chips" id="chips" aria-label="กลุ่มท่า"></div>
+    <div class="score">
+      <div class="ok"><b id="sOk">0</b><span>ทำได้ทัน</span></div>
+      <div class="bad"><b id="sMiss">0</b><span>ยังไม่ทัน</span></div>
+      <div><b id="sLeft">0</b><span>เหลือในรอบ</span></div>
+    </div>
+
+    <section class="stage" id="stage" aria-live="polite">
+      <div class="idle" id="idle">
+        <h2>พร้อมเข้าท่าไหม</h2>
+        <p id="idleText">ครูเรียกชื่อสันสกฤต คุณมีเวลา 5 วินาทีเข้าท่า แล้วเฉลยจะขึ้นเอง</p>
+        <button class="btn primary" id="startBtn">เริ่มรอบ</button>
+      </div>
+
+      <div id="play" hidden style="display:contents">
+        <div class="meta" id="meta"></div>
+        <h2 class="sa" id="saName"></h2>
+        <button class="ring" id="ring" aria-label="เฉลยก่อนหมดเวลา">
+          <svg viewBox="0 0 120 120" aria-hidden="true">
+            <circle class="track" cx="60" cy="60" r="52"></circle>
+            <circle class="prog" id="prog" cx="60" cy="60" r="52"></circle>
+          </svg>
+          <span class="count" id="count">5</span>
+        </button>
+        <div class="hint" id="hint">แตะวงกลมเพื่อเฉลยก่อนเวลา</div>
+        <div class="answer" id="answer" hidden></div>
+        <div class="actions" id="actions" hidden>
+          <button class="btn no" id="noBtn">ยังไม่ทัน</button>
+          <button class="btn ok" id="okBtn">ทำได้ทัน</button>
+        </div>
+      </div>
+
+      <div class="done" id="done" hidden>
+        <h2>จบรอบ</h2>
+        <p id="doneText"></p>
+        <div class="stack">
+          <button class="btn primary" id="againBtn">เริ่มรอบใหม่</button>
+          <button class="btn ghost" id="missBtn">ฝึกเฉพาะท่าที่พลาด</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="tools">
+      <button class="toggle" id="speakBtn" aria-pressed="false"><span class="sw"></span>อ่านชื่อท่าออกเสียง</button>
+      <button class="linkbtn" id="clearBtn" hidden>ล้างรายการท่าที่พลาด</button>
+    </div>
+    <div class="keys"><kbd>Space</kbd> เริ่ม/เฉลย · <kbd>←</kbd> ยังไม่ทัน · <kbd>→</kbd> ทำได้ทัน</div>
+  </main>
+
+  <main id="view-seq" class="seqview" hidden>
+    <div class="seg" id="seqSeg" aria-label="เลือกชุด"></div>
+    <section class="hook" id="seqHook"></section>
+    <div class="seqtools">
+      <button class="toggle" id="quizBtn" aria-pressed="false"><span class="sw"></span>ซ่อนชื่อท่า ทดสอบความจำ</button>
+      <button class="linkbtn" id="revealAll" hidden>เปิดทั้งหมด</button>
+    </div>
+    <ol class="seqlist" id="seqList"></ol>
+  </main>
+
+  <main id="view-review" class="review" hidden>
+    <section style="display:flex;flex-direction:column;gap:12px">
+      <div class="sec-head">
+        <h3>Prefix Decoder</h3>
+        <p>อ่านคำนำหน้าออก ก็เดาท่าได้ครึ่งหนึ่งแล้ว</p>
+      </div>
+      <div class="decoder" id="decoder"></div>
+    </section>
+    <section style="display:flex;flex-direction:column;gap:12px">
+      <div class="sec-head">
+        <h3>Master Sequence</h3>
+        <p>ทุกท่าในชีท เรียงตามลำดับการสอน</p>
+      </div>
+      <div id="list" style="display:flex;flex-direction:column;gap:14px"></div>
+    </section>
+  </main>
+
+  <footer>เนื้อหาจากชีท Master Sequence · Satit Yoga · บันทึกท่าที่พลาดไว้ในเบราว์เซอร์นี้</footer>
+</div>
+
+<script>
+const GROUPS=[
+  {id:'surya',en:'Surya Namaskar',th:'สุริยนมัสการ'},
+  {id:'s1',en:'Standing Seq 1',th:'ท่ายืน ชุดที่ 1'},
+  {id:'s2',en:'Standing Seq 2',th:'ท่ายืน ชุดที่ 2'},
+  {id:'s3',en:'Standing Seq 3',th:'ท่ายืน ชุดที่ 3'},
+  {id:'seated',en:'Seated',th:'ท่านั่ง'},
+  {id:'twist',en:'Twist & Arm Balance',th:'บิดตัวและทรงตัวบนแขน'},
+  {id:'prone',en:'Prone',th:'ท่าคว่ำและท่าคลาน'},
+  {id:'back',en:'Backbend · Inversion · Supine',th:'แอ่นหลัง กลับหัว นอนหงาย'}
+];
+// [group, sanskrit, english, thai, cue, roots "Part:ความหมาย|...", noAsanaSuffix]
+const RAW=[
+['surya','Tadasana','Mountain Pose','ท่าภูเขา','เท้าชิด กดน้ำหนักทั่วฝ่าเท้า ยืดกระดูกสันหลังขึ้น ไหล่ผ่อนลง','Tada:ภูเขา'],
+['surya','Urdhva Hastasana','Upward Salute','ท่ายกแขนขึ้นฟ้า','ยกแขนเหนือศีรษะ ฝ่ามือหันเข้าหากัน ซี่โครงหน้าไม่บานออก','Urdhva:ขึ้นด้านบน|Hasta:มือ'],
+['surya','Uttanasana','Standing Forward Bend','ท่ายืนก้มตัว','พับจากข้อสะโพก ไม่ใช่หลัง ปล่อยศีรษะห้อย งอเข่าได้','Ut:อย่างเข้มข้น|Tana:ยืด'],
+['surya','Ardha Uttanasana','Half Forward Fold','ท่าก้มครึ่งตัว','ยืดหลังตรงขนานพื้น มือแตะหน้าแข้ง มองพื้นด้านหน้าเล็กน้อย','Ardha:ครึ่ง|Ut:เข้มข้น|Tana:ยืด'],
+['surya','Chaturanga Dandasana','Four-Limbed Staff Pose','ท่าไม้เท้าสี่ขา','ศอกชิดลำตัวงอ 90° ลำตัวตรงเป็นแผ่นเดียว ไหล่ไม่ต่ำกว่าศอก','Chatur:สี่|Anga:ส่วน/แขนขา|Danda:ไม้เท้า'],
+['surya','Urdhva Mukha Svanasana','Upward-Facing Dog','ท่าสุนัขเงยหน้า','หลังเท้ากดพื้น ต้นขาลอย อกเปิดไปข้างหน้า ไหล่ห่างจากหู','Urdhva:ขึ้น|Mukha:ใบหน้า|Svana:สุนัข'],
+['surya','Adho Mukha Svanasana','Downward-Facing Dog','ท่าสุนัขก้มหน้า','ดันมือส่งสะโพกขึ้นและถอยหลัง หลังยาว ส้นเท้าลงหาพื้น','Adho:ลง|Mukha:ใบหน้า|Svana:สุนัข'],
+['surya','Utkatasana','Chair Pose','ท่าเก้าอี้','ส่งสะโพกถอยหลังเหมือนนั่งเก้าอี้ น้ำหนักที่ส้นเท้า เข่าไม่เลยปลายเท้า','Utkata:ทรงพลัง/ดุดัน'],
+['surya','Virabhadrasana 1','Warrior I','ท่านักรบ 1','เข่าหน้างอ 90° ตรงข้อเท้า สะโพกหันไปด้านหน้า เท้าหลังทำมุม 45°','Vira:วีรบุรุษ|Bhadra:มงคล'],
+['surya','Anjaneyasana','Low Lunge (Crescent)','ท่าจันทร์เสี้ยวต่ำ','เข่าหลังวางพื้น ส่งสะโพกไปข้างหน้า ยกแขนขึ้นและเปิดอก','Anjaneya:บุตรนางอัญชนา (หนุมาน)'],
+['surya','Ashtanga Namaskara','Eight-Limbed Salute','ท่าแปดจุดคารวะ','เข่า อก คางลงพื้น สะโพกยังลอยสูง ศอกชิดลำตัว','Ashta:แปด|Anga:ส่วนของร่างกาย|Namaskara:การคารวะ',1],
+['surya','Bhujangasana','Cobra Pose','ท่างูเห่า','หัวหน่าวและต้นขาแนบพื้น ศอกงอชิดลำตัว ยกอกด้วยแรงหลัง','Bhujanga:งู'],
+
+['s1','Virabhadrasana 2','Warrior II','ท่านักรบ 2','เข่าหน้าชี้ตรงนิ้วก้อย สะโพกเปิดด้านข้าง แขนขนานพื้น มองผ่านมือหน้า','Vira:วีรบุรุษ|Bhadra:มงคล'],
+['s1','Viparita Virabhadrasana','Reverse Warrior','ท่านักรบกลับด้าน','คงเข่าหน้างอ แขนหน้ายกเอนไปด้านหลัง มือหลังแตะขาหลังเบาๆ','Viparita:กลับด้าน|Vira:วีรบุรุษ|Bhadra:มงคล'],
+['s1','Utthita Trikonasana','Extended Triangle','ท่าสามเหลี่ยม','ขาตรงทั้งสอง ยืดลำตัวออกข้างก่อนลง แขนทั้งสองเป็นเส้นตรงแนวดิ่ง','Utthita:ยืดออก|Tri:สาม|Kona:มุม'],
+['s1','Utthita Parshva Konasana','Extended Side Angle','ท่ามุมข้างยืด','เข่าหน้างอ 90° แขนบนยืดเป็นเส้นเดียวกับขาหลัง หมุนอกขึ้น','Utthita:ยืดออก|Parshva:ด้านข้าง|Kona:มุม'],
+['s1','Baddha Utthita Parshva Konasana','Bound Extended Side Angle','ท่ามุมข้างแบบเกี่ยวมือ','แขนล่างลอดใต้ต้นขา แขนบนอ้อมหลังมาจับกัน หมุนอกขึ้นฟ้า','Baddha:ผูก/เกี่ยว|Utthita:ยืดออก|Parshva:ด้านข้าง|Kona:มุม'],
+['s1','Svarga Dvijasana','Bird of Paradise','ท่านกสวรรค์','คงมือเกี่ยวไว้ ย้ายน้ำหนักลงขายืน ลุกขึ้นช้าๆ แล้วเหยียดขาในวงแขน','Svarga:สวรรค์|Dvija:เกิดสองครั้ง (นก)'],
+
+['s2','Utthita Ashwa Sanchalanasana','High Lunge (Equestrian)','ท่าทหารม้า (ลันจ์สูง)','ขาหลังเหยียดตรง ส้นเท้าหลังยก สะโพกจัดตรง แขนยกขึ้นฟ้า','Utthita:ยืดออก|Ashwa:ม้า|Sanchalana:การเคลื่อน/ขี่'],
+['s2','Parshvottanasana','Intense Side Stretch (Pyramid)','ท่าพีระมิด','สะโพกหันตรงด้านหน้า ขาตรงทั้งคู่ พับลำตัวลงบนขาหน้าโดยหลังยาว','Parshva:ด้านข้าง|Ut:เข้มข้น|Tana:ยืด'],
+['s2','Virabhadrasana 3','Warrior III','ท่านักรบ 3','ลำตัวและขาหลังขนานพื้นเป็นเส้นเดียว สะโพกระดับเดียวกัน ปลายเท้าชี้ลง','Vira:วีรบุรุษ|Bhadra:มงคล'],
+['s2','Urdhva Prasarita Eka Padasana','Standing Split','ท่ายืนแยกขา','พับตัวลงแนบขายืน ยกขาหลังขึ้นสูง พยายามไม่ให้สะโพกเปิด','Urdhva:ขึ้น|Prasarita:กางออก|Eka:หนึ่ง|Pada:ขา/เท้า'],
+['s2','Ardha Chandrasana','Half Moon','ท่าพระจันทร์ครึ่งซีก','มือล่างใต้ไหล่ (ใช้บล็อกได้) สะโพกซ้อนกัน ขาบนขนานพื้น กระดกปลายเท้า','Ardha:ครึ่ง|Chandra:พระจันทร์'],
+['s2','Ardha Chandra Chapasana','Sugarcane Pose','ท่าคันศรพระจันทร์ (ต้นอ้อย)','จากท่าพระจันทร์ครึ่งซีก งอเข่าบน จับหลังเท้า ถีบเท้าออกให้อกเปิด','Ardha:ครึ่ง|Chandra:พระจันทร์|Chapa:คันธนู'],
+
+['s3','Prasarita Padottanasana D','Wide-Legged Forward Fold D','ท่ากางขาก้มตัว D','กางขากว้าง สองนิ้วเกี่ยวนิ้วโป้งเท้า กางศอกออกข้าง ศีรษะลงหาพื้น','Prasarita:กางออก|Pada:เท้า|Ut:เข้มข้น|Tana:ยืด'],
+['s3','Prasarita Padottanasana C','Wide-Legged Forward Fold C','ท่ากางขาก้มตัว C','ประสานมือด้านหลัง แขนเหยียดตรง พับตัวลงแล้วปล่อยแขนข้ามศีรษะ','Prasarita:กางออก|Pada:เท้า|Ut:เข้มข้น|Tana:ยืด'],
+['s3','Skandasana','Side Lunge','ท่าสกันทะ (ลันจ์ข้าง)','นั่งลงบนขาข้างหนึ่ง ส้นเท้ากดพื้น อีกขาเหยียดตรง ปลายเท้าชี้ฟ้า','Skanda:เทพสกันทะ (ขันธกุมาร)'],
+['s3','Parivrtta Parshva Konasana','Revolved Side Angle','ท่ามุมข้างบิดตัว','ศอกตรงข้ามเกี่ยวนอกเข่าหน้า พนมมือ หมุนอกขึ้น เข่าไม่ล้มเข้าใน','Parivrtta:บิด/หมุน|Parshva:ด้านข้าง|Kona:มุม'],
+['s3','Vasisthasana','Side Plank','ท่าแพลงก์ข้าง (วสิษฐะ)','มือล่างตรงใต้ไหล่ ขาเรียงซ้อนกัน ยกสะโพกให้ลำตัวเป็นเส้นตรง','Vasistha:ฤษีวสิษฐะ'],
+['s3','Camatkarasana','Wild Thing','ท่าสิ่งมหัศจรรย์','จากแพลงก์ข้าง ก้าวเท้าบนไปด้านหลัง ยกสะโพกและอก แขนยืดเหนือศีรษะ','Camatkara:ความปีติ/สิ่งอัศจรรย์'],
+
+['seated','Paschimottanasana','Seated Forward Bend','ท่านั่งก้มตัว','นั่งบนกระดูกก้น ยืดหลังก่อน แล้วพับจากสะโพก กระดกปลายเท้า','Paschima:ด้านหลังร่างกาย (ตะวันตก)|Ut:เข้มข้น|Tana:ยืด'],
+['seated','Navasana','Boat Pose','ท่าเรือ','ทรงตัวบนกระดูกก้น ยกอก หลังไม่งุ้ม แขนยืดขนานพื้น','Nava:เรือ'],
+['seated','Lolasana','Pendant Pose','ท่าตุ้มหู','ไขว้หน้าแข้ง มือดันพื้นข้างสะโพก ห่อหลังบน ยกเข่าและเท้าลอย','Lola:แกว่งไกว/ตุ้มหู'],
+['seated','Baddha Konasana','Bound Angle (Butterfly)','ท่าผีเสื้อ','ฝ่าเท้าประกบกัน ดึงส้นเท้าเข้าหาลำตัว เข่าปล่อยลงข้าง หลังตรง','Baddha:ผูก|Kona:มุม'],
+['seated','Agnistambhasana','Fire Log Pose','ท่าท่อนฟืน','หน้าแข้งซ้อนกันขนานขอบเสื่อ ข้อเท้าวางบนเข่าตรงข้าม กระดกเท้า','Agni:ไฟ|Stambha:เสา/ท่อนไม้'],
+['seated','Gomukhasana','Cow Face Pose','ท่าหน้าวัว','เข่าซ้อนกัน มือหนึ่งอ้อมบน อีกมืออ้อมล่าง จับกันกลางหลัง ศอกบนชี้ฟ้า','Go:วัว|Mukha:ใบหน้า'],
+
+['twist','Marichyasana A','Marichi’s Pose A','ท่ามรีจิ A','ชันเข่าข้างหนึ่ง แขนข้างเดียวกันอ้อมหน้าแข้งจับมือด้านหลัง พับตัวหาขาเหยียด','Marichi:ฤษีมรีจิ (ลำแสง)'],
+['twist','Parivrtta Janu Sirsasana','Revolved Head-to-Knee','ท่าศีรษะจรดเข่าแบบบิดตัว','เอียงลำตัวหาขาเหยียด ไหล่ล่างแตะในเข่า แขนบนอ้อมเหนือศีรษะ หมุนอกขึ้น','Parivrtta:บิด|Janu:เข่า|Sirsa:ศีรษะ'],
+['twist','Ardha Matsyendrasana','Half Lord of the Fishes','ท่าบิดตัวนั่ง (ครึ่งจ้าวแห่งปลา)','ยืดหลังขึ้นก่อนบิด ศอกเกี่ยวนอกเข่า บิดจากเอวไล่ขึ้นไปที่ไหล่','Ardha:ครึ่ง|Matsya:ปลา|Indra:จ้าว'],
+['twist','Bharadvajasana','Bharadvaja’s Twist','ท่าภารทวาชะ','นั่งพับขาไปด้านเดียวกัน บิดลำตัวไปทางตรงข้ามกับเท้า มือหลังจับเท้า','Bharadvaja:ฤษีภารทวาชะ'],
+['twist','Parivrtta Surya Yantrasana','Compass Pose','ท่าเข็มทิศ','ขาพาดบนไหล่ มือจับเท้าเหยียดขาขึ้น หมุนอกออก มองใต้แขนขึ้นไป','Parivrtta:บิด|Surya:พระอาทิตย์|Yantra:เครื่องมือ (นาฬิกาแดด)'],
+['twist','Astavakrasana','Eight-Angle Pose','ท่าแปดมุม','ขาหนึ่งพาดต้นแขน ไขว้ข้อเท้า งอศอก 90° เหยียดขาออกข้าง','Ashta:แปด|Vakra:คด/โค้ง (ฤษีอัษฏาวักระ)'],
+
+['prone','Balasana','Child’s Pose','ท่าเด็ก','นั่งบนส้นเท้า หน้าผากวางพื้น ปล่อยหลังยาว หายใจเข้าที่แผ่นหลัง','Bala:เด็ก'],
+['prone','Bitilasana','Cow Pose','ท่าวัว','มือใต้ไหล่ เข่าใต้สะโพก หายใจเข้า ท้องลง อกและก้นกบยกขึ้น','Bitila:วัว'],
+['prone','Marjaryasana','Cat Pose','ท่าแมว','หายใจออก ดันพื้น ห่อหลังขึ้น ก้มคาง ดึงสะดือเข้า','Marjari:แมว'],
+['prone','Utthan Pristhasana','Lizard Pose','ท่าจิ้งจก','ก้าวเท้าออกนอกมือ ลดศอกลงพื้น ขาหลังเหยียดยาวหรือวางเข่า','Utthan:ยืด/ยกขึ้น|Pristha:แผ่นหลัง/ด้านหลัง'],
+['prone','Eka Pada Rajakapotasana','One-Legged King Pigeon','ท่าราชานกพิราบขาเดียว','หน้าแข้งหน้าวางเฉียง สะโพกจัดตรง ขาหลังเหยียดยาว ลำตัวพับลงได้','Eka:หนึ่ง|Pada:ขา|Raja:ราชา|Kapota:นกพิราบ'],
+['prone','Dhanurasana','Bow Pose','ท่าคันธนู','จับข้อเท้าด้านนอก ถีบเท้าไปด้านหลังเพื่อยกอก เข่าไม่กางกว่าสะโพก','Dhanu:คันธนู'],
+
+['back','Setu Bandha Sarvangasana','Bridge Pose','ท่าสะพาน','เท้าขนานกว้างเท่าสะโพก กดเท้ายกสะโพก เข่าชี้ตรงไปด้านหน้า','Setu:สะพาน|Bandha:ล็อก/สร้าง|Sarva:ทั้งหมด|Anga:ร่างกาย'],
+['back','Urdhva Dhanurasana','Wheel Pose','ท่าล้อ (คันธนูหงาย)','มือวางข้างหู นิ้วชี้หาเท้า ดันพื้นยกตัวขึ้น ศอกไม่บานออก','Urdhva:ขึ้น|Dhanu:คันธนู'],
+['back','Salamba Sarvangasana','Supported Shoulderstand','ท่ายืนด้วยไหล่','น้ำหนักอยู่บนไหล่ไม่ใช่คอ มือประคองหลัง ศอกชิด ขาตรงแนวดิ่ง','Salamba:มีที่ค้ำ|Sarva:ทั้งหมด|Anga:ร่างกาย'],
+['back','Halasana','Plow Pose','ท่าคันไถ','ลดปลายเท้าลงพื้นเหนือศีรษะ สะโพกอยู่เหนือไหล่ ห้ามหันคอ','Hala:คันไถ'],
+['back','Supta Matsyendrasana','Supine Twist','ท่าบิดตัวนอนหงาย','นอนหงาย พาดเข่าข้ามลำตัว ไหล่ทั้งสองแนบพื้น มองทางตรงข้าม','Supta:นอนหงาย|Matsya:ปลา|Indra:จ้าว'],
+['back','Savasana','Corpse Pose','ท่าศพ','นอนหงาย แขนขาห่างลำตัวเล็กน้อย ฝ่ามือหงาย ปล่อยวางทั้งตัว','Sava:ศพ']
+];
+const POSES=RAW.map((r,i)=>({n:i+1,g:r[0],sa:r[1],en:r[2],th:r[3],cue:r[4],
+  roots:r[5].split('|').map(x=>x.split(':')),noAsana:!!r[6],
+  id:r[1].toLowerCase().replace(/[^a-z0-9]+/g,'-')}));
+const byId=Object.fromEntries(POSES.map(p=>[p.id,p]));
+const gById=Object.fromEntries(GROUPS.map(g=>[g.id,g]));
+
+const PREFIXES=[
+ ['Utthita','ยืดออก / เหยียด','Extended',/utthita/i],
+ ['Parivrtta','บิด / หมุนกลับ','Revolved',/parivrtta/i],
+ ['Ardha','ครึ่ง','Half',/ardha/i],
+ ['Urdhva','ขึ้นด้านบน','Upward',/urdhva/i],
+ ['Adho','ลงด้านล่าง','Downward',/adho/i],
+ ['Supta','นอนหงาย','Reclined',/supta/i],
+ ['Eka Pada','ขาเดียว','One-legged',/eka pada/i],
+ ['Baddha','ผูก / เกี่ยวมือ','Bound',/baddha/i],
+ ['Prasarita','กางออกกว้าง','Spread wide',/prasarita/i],
+ ['Salamba','มีที่ค้ำ','Supported',/salamba/i],
+ ['Viparita','กลับด้าน','Reversed',/viparita/i],
+ ['Parshva','ด้านข้าง','Side',/parshva/i],
+ ['Uttana','ยืดอย่างเข้มข้น','Intense stretch',/ttana/i],
+ ['Mukha','ใบหน้า','Face',/mukha/i],
+ ['Kona','มุม','Angle',/kona/i],
+ ['Sarvanga','ทั้งร่างกาย','Whole body',/sarvanga/i]
+];
+
+/* ---------- storage ---------- */
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+             set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let missedSet=new Set(store.get('satit.missed',[]).filter(id=>byId[id]));
+let speakOn=!!store.get('satit.speak',false);
+let filter=store.get('satit.filter','all');
+if(filter!=='all'&&filter!=='missed'&&!gById[filter])filter='all';
+const saveMissed=()=>store.set('satit.missed',[...missedSet]);
+
+/* ---------- drill state ---------- */
+const $=id=>document.getElementById(id);
+const DUR=5000, C=2*Math.PI*52;
+let deck=[],idx=0,nOk=0,nMiss=0,phase='idle',raf=0,t0=0,wake=null;
+$('prog').style.strokeDasharray=C;
+
+function pool(){
+  if(filter==='all')return POSES;
+  if(filter==='missed')return POSES.filter(p=>missedSet.has(p.id));
+  return POSES.filter(p=>p.g===filter);
+}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+function rootsHTML(p){
+  const parts=p.roots.map(([s,m])=>`<span class="root"><i>${s}</i><span>${m}</span></span>`);
+  if(!p.noAsana)parts.push(`<span class="root"><i>āsana</i><span>ท่า</span></span>`);
+  return parts.join('<span class="plus">+</span>');
+}
+
+function renderChips(){
+  const items=[['all','ทั้งหมด',POSES.length]].concat(GROUPS.map(g=>[g.id,g.en,POSES.filter(p=>p.g===g.id).length]),[['missed','ท่าที่พลาด',missedSet.size]]);
+  $('chips').innerHTML=items.map(([id,l,c])=>`<button class="chip${id==='missed'?' miss':''}" data-f="${id}" aria-pressed="${id===filter}">${l}<small>${c}</small></button>`).join('');
+  $('clearBtn').hidden=!(filter==='missed'&&missedSet.size);
+}
+function renderScore(){
+  $('sOk').textContent=nOk;$('sMiss').textContent=nMiss;
+  $('sLeft').textContent=phase==='idle'?pool().length:Math.max(0,deck.length-idx);
+}
+function show(which){
+  $('idle').hidden=which!=='idle';$('play').hidden=which!=='play';$('done').hidden=which!=='done';
+  $('play').style.display=which==='play'?'contents':'none';
+}
+function filterLabel(){return filter==='all'?'ทุกกลุ่ม':filter==='missed'?'ท่าที่พลาด':gById[filter].en}
+
+function resetRound(){
+  cancelAnimationFrame(raf);phase='idle';deck=[];idx=0;nOk=0;nMiss=0;
+  $('stage').classList.remove('warm');
+  const n=pool().length;
+  if(!n){
+    $('idleText').textContent='ยังไม่มีท่าที่พลาด ฝึกรอบปกติก่อน ท่าที่กด "ยังไม่ทัน" จะมารวมที่นี่';
+    $('startBtn').hidden=true;
+  }else{
+    $('idleText').textContent=`${filterLabel()} · ${n} ท่า ครูเรียกชื่อสันสกฤต คุณมีเวลา 5 วินาทีเข้าท่า แล้วเฉลยจะขึ้นเอง`;
+    $('startBtn').hidden=false;$('startBtn').textContent=`เริ่มรอบ · ${n} ท่า`;
+  }
+  show('idle');renderScore();
+}
+function startRound(){
+  const p=pool();if(!p.length)return;
+  deck=shuffle(p.map(x=>x.id));idx=0;nOk=0;nMiss=0;
+  try{navigator.wakeLock&&navigator.wakeLock.request('screen').then(w=>wake=w).catch(()=>{})}catch(e){}
+  show('play');runPose();
+}
+function speak(t){
+  if(!speakOn)return;
+  try{const s=window.speechSynthesis;if(!s)return;s.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-US';u.rate=.85;s.speak(u)}catch(e){}
+}
+function runPose(){
+  const p=byId[deck[idx]];
+  phase='running';
+  $('meta').textContent=`ท่าที่ ${idx+1} / ${deck.length} · ${gById[p.g].en}`;
+  $('saName').textContent=p.sa;
+  $('answer').hidden=true;$('actions').hidden=true;$('hint').hidden=false;
+  $('count').classList.remove('word');$('count').textContent='5';
+  $('prog').style.strokeDashoffset=0;$('prog').style.strokeOpacity=1;
+  $('stage').classList.remove('warm');
+  renderScore();speak(p.sa);
+  t0=performance.now();cancelAnimationFrame(raf);raf=requestAnimationFrame(tick);
+}
+function tick(now){
+  const el=now-t0,rem=Math.max(0,DUR-el);
+  $('prog').style.strokeDashoffset=C*Math.min(1,el/DUR);
+  $('count').textContent=Math.ceil(rem/1000);
+  $('stage').classList.toggle('warm',rem<=2000);
+  if(rem<=0){reveal(false);return}
+  raf=requestAnimationFrame(tick);
+}
+function reveal(early){
+  if(phase!=='running')return;
+  cancelAnimationFrame(raf);phase='revealed';
+  const p=byId[deck[idx]];
+  $('count').classList.add('word');$('count').textContent=early?'เฉลย':'หมดเวลา';
+  if(!early){$('prog').style.strokeOpacity=0}
+  $('hint').hidden=true;
+  $('answer').innerHTML=`<div class="names"><span class="en">${p.en}</span><span class="th">${p.th}</span></div>
+    <div class="cue">${p.cue}</div><div class="roots">${rootsHTML(p)}</div>`;
+  $('answer').hidden=false;$('actions').hidden=false;
+}
+function answer(ok){
+  if(phase!=='revealed')return;
+  const id=deck[idx];
+  if(ok){nOk++;missedSet.delete(id)}else{nMiss++;missedSet.add(id)}
+  saveMissed();idx++;
+  renderChips();
+  if(idx>=deck.length)finish();else runPose();
+}
+function finish(){
+  phase='done';$('stage').classList.remove('warm');
+  try{wake&&wake.release();wake=null}catch(e){}
+  const pct=Math.round(nOk/deck.length*100);
+  $('doneText').textContent=`ทำได้ทัน ${nOk} จาก ${deck.length} ท่า (${pct}%) · ท่าที่พลาดสะสม ${missedSet.size} ท่า`;
+  $('missBtn').hidden=!missedSet.size;
+  show('done');renderScore();
+}
+function setFilter(f){filter=f;store.set('satit.filter',f);renderChips();resetRound()}
+
+/* ---------- events ---------- */
+$('chips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(b)setFilter(b.dataset.f)});
+$('startBtn').onclick=startRound;
+$('ring').onclick=()=>reveal(true);
+$('okBtn').onclick=()=>answer(true);
+$('noBtn').onclick=()=>answer(false);
+$('againBtn').onclick=()=>{resetRound();startRound()};
+$('missBtn').onclick=()=>{setFilter('missed');startRound()};
+$('speakBtn').setAttribute('aria-pressed',speakOn);
+$('speakBtn').onclick=()=>{speakOn=!speakOn;store.set('satit.speak',speakOn);$('speakBtn').setAttribute('aria-pressed',speakOn);if(speakOn)speak('Tadasana')};
+let clearArmed=false;
+$('clearBtn').onclick=()=>{
+  if(!clearArmed){clearArmed=true;$('clearBtn').textContent='แตะอีกครั้งเพื่อยืนยันการล้าง';setTimeout(()=>{clearArmed=false;$('clearBtn').textContent='ล้างรายการท่าที่พลาด'},3000);return}
+  clearArmed=false;missedSet.clear();saveMissed();$('clearBtn').textContent='ล้างรายการท่าที่พลาด';renderChips();resetRound();renderList();
+};
+document.addEventListener('keydown',e=>{
+  if($('view-drill').hidden||e.target.closest('input,textarea'))return;
+  if(e.code==='Space'){e.preventDefault();
+    if(phase==='idle')startRound();else if(phase==='running')reveal(true);else if(phase==='done'){resetRound();startRound()}}
+  else if(e.key==='ArrowRight')answer(true);
+  else if(e.key==='ArrowLeft')answer(false);
+});
+
+/* ---------- tabs ---------- */
+function switchTab(t){
+  ['drill','seq','review'].forEach(k=>{$('tab-'+k).setAttribute('aria-selected',k===t);$('view-'+k).hidden=k!==t});
+  const d=t==='drill';
+  $('view-drill').style.display=d?'flex':'none';
+  if(!d&&phase==='running'){cancelAnimationFrame(raf);phase='paused'}
+  if(d&&phase==='paused')runPose();
+  if(t==='review')renderList();
+  if(t==='seq')renderSeq();
+  store.set('satit.tab',t);
+}
+$('tab-drill').onclick=()=>switchTab('drill');
+$('tab-seq').onclick=()=>switchTab('seq');
+$('tab-review').onclick=()=>switchTab('review');
+
+/* ---------- Surya sequences ---------- */
+// step: [sanskrit, breath(start|in|out|hold), cue, note]
+const SEQS={
+ A:{name:'Surya Namaskar A',th:'สุริยนมัสการ A',core:[5,7],steps:[
+  ['Tadasana','start','ยืนเท้าชิด มือข้างลำตัว ตั้งสมาธิก่อนเริ่ม','Samasthiti'],
+  ['Urdhva Hastasana','in','กวาดแขนออกข้างขึ้นเหนือศีรษะ ฝ่ามือชนกัน มองนิ้วโป้ง'],
+  ['Uttanasana','out','พับจากข้อสะโพกลง มือวางข้างเท้า'],
+  ['Ardha Uttanasana','in','ยืดหลังตรง ปลายนิ้วแตะหน้าแข้ง มองไปข้างหน้า'],
+  ['Chaturanga Dandasana','out','ก้าวหรือกระโดดถอยหลัง ลดตัวลง ศอกชิดลำตัว'],
+  ['Urdhva Mukha Svanasana','in','ม้วนข้ามปลายเท้า ดันพื้น เปิดอกไปข้างหน้า'],
+  ['Adho Mukha Svanasana','out','ม้วนปลายเท้ากลับ ส่งสะโพกขึ้น ค้างไว้','ค้าง 5 ลมหายใจ'],
+  ['Ardha Uttanasana','in','ก้าวหรือกระโดดเท้ามาระหว่างมือ ยืดหลังตรง'],
+  ['Uttanasana','out','พับลำตัวลงแนบขา'],
+  ['Urdhva Hastasana','in','ลุกขึ้นด้วยหลังยาว กวาดแขนขึ้นเหนือศีรษะ'],
+  ['Tadasana','out','ลดแขนลงข้างลำตัว กลับสู่ Samasthiti','Samasthiti']],
+  facts:'11 ท่าบนชีท · Vinyasa 1 รอบ',
+  hook:['แกนกลางคือ Vinyasa: Chaturanga → Urdhva Mukha → Adho Mukha (สเตป 5–7)',
+        'ท่า 1–4 กับ 8–11 เป็นกระจกเงากัน ทำขาไปอย่างไร ขากลับย้อนลำดับเดิม',
+        'ลมหายใจสลับเข้า–ออกทุกสเตป ค้างยาวที่เดียวคือ Downdog']},
+ B:{name:'Surya Namaskar B',th:'สุริยนมัสการ B',core:[5,15],steps:[
+  ['Tadasana','start','ยืนเท้าชิด ตั้งสมาธิก่อนเริ่ม','Samasthiti'],
+  ['Utkatasana','in','งอเข่า ส่งสะโพกถอยหลัง ยกแขนขึ้นเหนือศีรษะ'],
+  ['Uttanasana','out','เหยียดขา พับตัวลง มือวางข้างเท้า'],
+  ['Ardha Uttanasana','in','ยืดหลังตรง มองไปข้างหน้า'],
+  ['Chaturanga Dandasana','out','ก้าวหรือกระโดดถอยหลัง ลดตัวลง ศอกชิด'],
+  ['Urdhva Mukha Svanasana','in','ม้วนข้ามปลายเท้า เปิดอก'],
+  ['Adho Mukha Svanasana','out','ส่งสะโพกขึ้น เตรียมก้าวขาขวา'],
+  ['Virabhadrasana 1','in','ก้าวเท้าขวามาระหว่างมือ ส้นเท้าซ้ายหมุนลง 45° ยกแขนขึ้น','ขาขวาหน้า'],
+  ['Chaturanga Dandasana','out','วางมือสองข้างเท้า ถอยขาขวากลับ ลดตัวลง'],
+  ['Urdhva Mukha Svanasana','in','ม้วนข้ามปลายเท้า เปิดอก'],
+  ['Adho Mukha Svanasana','out','ส่งสะโพกขึ้น เตรียมก้าวขาซ้าย'],
+  ['Virabhadrasana 1','in','ก้าวเท้าซ้ายมาระหว่างมือ ส้นเท้าขวาหมุนลง 45° ยกแขนขึ้น','ขาซ้ายหน้า'],
+  ['Chaturanga Dandasana','out','วางมือสองข้างเท้า ถอยขาซ้ายกลับ ลดตัวลง'],
+  ['Urdhva Mukha Svanasana','in','ม้วนข้ามปลายเท้า เปิดอก'],
+  ['Adho Mukha Svanasana','out','ส่งสะโพกขึ้น ค้างไว้','ค้าง 5 ลมหายใจ'],
+  ['Ardha Uttanasana','in','ก้าวหรือกระโดดเท้ามาระหว่างมือ ยืดหลังตรง'],
+  ['Uttanasana','out','พับลำตัวลงแนบขา'],
+  ['Utkatasana','in','งอเข่า ลุกขึ้นพร้อมยกแขน'],
+  ['Tadasana','out','เหยียดขา ลดแขนลงข้างลำตัว','Samasthiti']],
+  facts:'19 ท่าบนชีท · Vinyasa 3 รอบ',
+  hook:['B คือ A ที่เปลี่ยน Urdhva Hastasana เป็น Utkatasana (สเตป 2 และ 18)',
+        'หลัง Downdog แต่ละครั้ง แทรก Virabhadrasana 1 ขวาก่อน แล้วซ้าย',
+        'Vinyasa มาทั้งหมด 3 รอบ: หลังพับตัว, หลัง Warrior ขวา, หลัง Warrior ซ้าย',
+        'ค้าง 5 ลมหายใจเฉพาะ Downdog ครั้งสุดท้าย (สเตป 15)']},
+ C:{name:'Classical Surya Namaskar',th:'สุริยนมัสการแบบดั้งเดิม',core:[6,7],steps:[
+  ['Tadasana','out','พนมมือที่กลางอก ยืนเท้าชิด','Pranamasana · พนมมือ'],
+  ['Urdhva Hastasana','in','ยกแขนขึ้น เปิดอก แอ่นหลังส่วนบนเล็กน้อย','แอ่นหลัง'],
+  ['Uttanasana','out','พับตัวลง มือวางข้างเท้า'],
+  ['Anjaneyasana','in','ถอยขาขวาไปด้านหลัง วางเข่า เปิดอก มองขึ้น','ขาขวาถอยหลัง'],
+  ['Adho Mukha Svanasana','out','ถอยขาซ้ายตาม ส่งสะโพกขึ้น'],
+  ['Ashtanga Namaskara','hold','ลดเข่า อก คางลงพื้น สะโพกยังลอย'],
+  ['Bhujangasana','in','เลื่อนตัวไปข้างหน้า ยกอก ศอกชิดลำตัว'],
+  ['Adho Mukha Svanasana','out','ม้วนปลายเท้า ส่งสะโพกกลับขึ้น'],
+  ['Anjaneyasana','in','ก้าวเท้าขวามาระหว่างมือ วางเข่าซ้าย เปิดอก','ขาขวาก้าวหน้า'],
+  ['Uttanasana','out','ก้าวเท้าซ้ายตาม พับตัวลง'],
+  ['Urdhva Hastasana','in','ลุกขึ้นยกแขน แอ่นหลังเล็กน้อย','แอ่นหลัง'],
+  ['Tadasana','out','ลดมือกลับมาพนมที่อก','Pranamasana · พนมมือ']],
+  facts:'12 ท่าบนชีท · ทำ 2 รอบ สลับขา',
+  hook:['12 สเตปเป็นกระจกเงารอบแกนกลาง Ashtanga Namaskara → Bhujangasana (สเตป 6–7)',
+        'ขาที่ถอยไปก่อน (ขวา) คือขาที่ก้าวกลับมาก่อน รอบที่ 2 เปลี่ยนเป็นขาซ้าย',
+        'ไม่มี Chaturanga ลงพื้นด้วย Ashtanga Namaskara โดยกลั้นลมหายใจออก']}
+};
+const BR={start:'ตั้งต้น',in:'หายใจเข้า',out:'หายใจออก',hold:'กลั้นลมหายใจออก'};
+const poseBySa=Object.fromEntries(POSES.map(p=>[p.sa,p]));
+let seqKey=store.get('satit.seq','A'); if(!SEQS[seqKey])seqKey='A';
+let quiz=false, opened=new Set();
+$('seqSeg').innerHTML=Object.entries(SEQS).map(([k,s])=>`<button data-k="${k}" aria-pressed="${k===seqKey}"><b>${k==='C'?'Classical':'Surya '+k}</b><span>${s.steps.length} สเตป</span></button>`).join('');
+function renderSeq(){
+  const s=SEQS[seqKey],n=s.steps.length,[c0,c1]=s.core;
+  $('seqSeg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===seqKey));
+  $('seqHook').innerHTML=`<h3>${s.name}</h3><div class="facts">${s.th} · ${s.facts}</div><ul>${s.hook.map(h=>`<li>${h}</li>`).join('')}</ul>`;
+  $('seqList').classList.toggle('quiz',quiz);
+  $('revealAll').hidden=!quiz;
+  $('seqList').innerHTML=s.steps.map(([sa,b,cue,note],i)=>{
+    const no=i+1,p=poseBySa[sa]||{en:'',th:''},core=no>=c0&&no<=c1,show=!quiz||opened.has(i);
+    const mir=core?'':`<span class="mir">คู่กับสเตป ${n+1-no}</span>`;
+    const head=show?`<span class="nm">${sa}${note?`<span class="nt">${note}</span>`:''}</span><span class="en">${p.en} · ${p.th}</span><span class="ct">${cue}</span>`
+                   :`<span class="ph">แตะเพื่อดูท่าที่ ${no}</span>`;
+    return `<li><button class="step${core?' core':''}" data-i="${i}" ${quiz?'':'tabindex="-1"'}><span class="no">${String(no).padStart(2,'0')}</span>
+      <span class="body">${head}<span class="ln"><span class="br ${b}">${BR[b]}</span>${mir}</span></span></button></li>`;
+  }).join('');
+}
+$('seqSeg').addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(!b)return;seqKey=b.dataset.k;store.set('satit.seq',seqKey);opened.clear();renderSeq()});
+$('quizBtn').onclick=()=>{quiz=!quiz;opened.clear();$('quizBtn').setAttribute('aria-pressed',quiz);renderSeq()};
+$('revealAll').onclick=()=>{SEQS[seqKey].steps.forEach((_,i)=>opened.add(i));renderSeq()};
+$('seqList').addEventListener('click',e=>{const b=e.target.closest('.step');if(!b||!quiz)return;const i=+b.dataset.i;opened.has(i)?opened.delete(i):opened.add(i);renderSeq()});
+
+/* ---------- review ---------- */
+$('decoder').innerHTML=PREFIXES.map(([p,m,e,re])=>{
+  const ex=POSES.filter(x=>re.test(x.sa)).map(x=>x.sa);
+  return `<div class="dec"><span class="p">${p}</span><span class="m">${m}</span><span class="e">${e}</span>
+    <span class="x">${ex.length} ท่า · ${ex.slice(0,2).join(', ')}${ex.length>2?' …':''}</span></div>`;
+}).join('');
+function renderList(){
+  $('list').innerHTML=GROUPS.map(g=>{
+    const ps=POSES.filter(p=>p.g===g.id);
+    return `<section class="group"><div class="ghead"><h4>${g.en}<span>${g.th} · ${ps.length} ท่า</span></h4>
+      <button data-drill="${g.id}">ฝึกชุดนี้</button></div>
+      ${ps.map(p=>`<div class="row"><div class="top"><span class="n">${p.sa}${missedSet.has(p.id)?'<span class="tag-miss">พลาด</span>':''}</span><span class="num">${String(p.n).padStart(2,'0')}</span></div>
+        <div class="sub"><b>${p.en}</b> · ${p.th}</div>
+        <div class="c">${p.cue}</div>
+        <div class="roots">${rootsHTML(p)}</div></div>`).join('')}</section>`;
+  }).join('');
+}
+$('list').addEventListener('click',e=>{const b=e.target.closest('[data-drill]');if(!b)return;setFilter(b.dataset.drill);switchTab('drill');window.scrollTo(0,0)});
+
+renderChips();resetRound();renderList();
+{const t=store.get('satit.tab','drill');if(t==='seq'||t==='review')switchTab(t)}
+</script>
+</body>
+</html>
